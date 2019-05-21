@@ -1,0 +1,20 @@
+import material/material_graphics;
+import material/material_manager;
+import material/material_dialog;
+
+main() {
+	println("Hello console");
+	coords = make(Pair(0., 0.));
+	mrender(makeMaterialManager([]), false, MSelect(coords, unpairC(\x,y -> {
+		MOffset(x, y, MCircle(10., [Fill(grey)]));
+	})));
+
+	updateLoop(coords);
+}
+
+updateLoop(coords : DynamicBehaviour<Pair<double, double>>) -> void {
+	timer(20, \ -> {
+		next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2)));
+		updateLoop(coords);
+	});
+}
