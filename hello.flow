@@ -2,17 +2,30 @@ import material/material_graphics;
 import material/material_manager;
 import material/material_dialog;
 
-main() {
-	println("Hello console!!!");
-	coords = make(Pair(0., 0.));
-	mrender(makeMaterialManager([]), false, MGroup([
-		MCircle(10., [Fill(grey)]),
-		MSelect(coords, unpairC(\x,y -> {
-			MOffset(x, y, MCircle(10., [Fill(grey)]));
-		}))
-	]));
+BCircle(r : double, coords : Point);
+Entity(color : int, bounds : BCircle);
 
-	updateLoop(\ -> next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2))));
+WorldState(entities : [Entity]);
+
+// main() {
+// 	println("Hello console!!!");
+// 	coords = make(Pair(0., 0.));
+// 	mrender(makeMaterialManager([]), false, MGroup([
+// 		MCircle(10., [Fill(grey)]),
+// 		MSelect(coords, unpairC(\x,y -> {
+// 			MOffset(x, y, MCircle(10., [Fill(grey)]));
+// 		}))
+// 	]));
+
+// 	updateLoop(\ -> next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2))));
+// }
+
+main() {
+	w = WorldState([
+		Entity(blue, BCircle(10.0, Point(0.0, 0.0))), 
+		Entity(yellow, BCircle(5.0, Point(100.0, 100.0)))
+	]);
+	renderWorld(w)
 }
 
 updateLoop(update : () -> void) -> void {
@@ -20,4 +33,12 @@ updateLoop(update : () -> void) -> void {
 		update();
 		updateLoop(update);
 	});
+}
+
+renderWorld(world : WorldState) -> () -> void {
+	mrender(makeMaterialManager([]), false, MGroup(map(world.entities, \entity -> {
+		b = entity.bounds;
+		coords = b.coords;
+		MOffset(coords.x - b.r, coords.y - b.r, MCircle(b.r, [Fill(entity.color)]))
+	})));
 }
