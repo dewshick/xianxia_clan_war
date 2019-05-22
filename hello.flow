@@ -2,8 +2,10 @@ import material/material_graphics;
 import material/material_manager;
 import material/material_dialog;
 
+
+
 BCircle(r : double, coords : Point);
-Entity(color : int, bounds : BCircle);
+Entity(color : int, bounds : BCircle, moving : bool);
 
 WorldState(entities : [Entity]);
 
@@ -21,24 +23,34 @@ WorldState(entities : [Entity]);
 // }
 
 main() {
-	w = WorldState([
-		Entity(blue, BCircle(10.0, Point(0.0, 0.0))), 
-		Entity(yellow, BCircle(5.0, Point(100.0, 100.0)))
-	]);
+
+	w = WorldState(map(enumFromTo(1, 300), \__ -> {
+		Entity(yellow, BCircle(5.0, Point(random() * 500.0, random() * 500.0)), true)
+	}));
 	renderWorld(w)
 }
 
-updateLoop(update : () -> void) -> void {
+updateLoop(i : int, update : (int) -> void) -> void {
 	timer(20, \ -> {
-		update();
-		updateLoop(update);
+		update(i);
+		updateLoop(i+1, update);
 	});
 }
 
-renderWorld(world : WorldState) -> () -> void {
-	mrender(makeMaterialManager([]), false, MGroup(map(world.entities, \entity -> {
+renderWorld(world : WorldState) -> void {
+	directions = map(world.entities, \__ -> Point(random() * 0.1, random() * 0.1));
+	eCoords = map(world.entities, \e -> make(e.bounds.coords));
+	mrender(makeMaterialManager([]), false, MGroup(zipWith(world.entities, eCoords, \entity, dirM -> {
 		b = entity.bounds;
 		coords = b.coords;
-		MOffset(coords.x - b.r, coords.y - b.r, MCircle(b.r, [Fill(entity.color)]))
+		MSelect(dirM, \dir -> MOffset(dir.x - b.r, dir.y - b.r, MCircle(b.r, [Fill(entity.color)])))
 	})));
+	updateLoop(0, \n -> {
+		iteri(eCoords, \i, c -> {
+			next(c, Point(
+				getValue(c).x + i2d(n) * directions[i].x, 
+				getValue(c).y + i2d(n) * directions[i].y
+			))
+		});
+	});
 }
