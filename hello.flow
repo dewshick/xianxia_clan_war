@@ -3,18 +3,21 @@ import material/material_manager;
 import material/material_dialog;
 
 main() {
-	println("Hello console");
+	println("Hello console!!!");
 	coords = make(Pair(0., 0.));
-	mrender(makeMaterialManager([]), false, MSelect(coords, unpairC(\x,y -> {
-		MOffset(x, y, MCircle(10., [Fill(grey)]));
-	})));
+	mrender(makeMaterialManager([]), false, MGroup([
+		MCircle(10., [Fill(grey)]),
+		MSelect(coords, unpairC(\x,y -> {
+			MOffset(x, y, MCircle(10., [Fill(grey)]));
+		}))
+	]));
 
-	updateLoop(coords);
+	updateLoop(\ -> next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2))));
 }
 
-updateLoop(coords : DynamicBehaviour<Pair<double, double>>) -> void {
+updateLoop(update : () -> void) -> void {
 	timer(20, \ -> {
-		next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2)));
-		updateLoop(coords);
+		update();
+		updateLoop(update);
 	});
 }
