@@ -3,29 +3,43 @@ import material/material_manager;
 import material/material_dialog;
 
 
+EntityBlueprint(
+	name : string,
+	distToObj : double,
+	radius : double,
+	color : int,
+	speed : double,
+	// genus : Genus,
+	// size : Size,
+	// food : Genus
+	// maxLifetime : int //use UInt64 later
+);
 
-BCircle(r : double, coords : Point);
-Entity(color : int, bounds : BCircle, moving : bool);
+// Genus ::= Plant, Animal;
+// 	Plant(); Animal(); Nothing();
+
+// Size ::= Big, Small;
+// 	Big(); Small();
+
+TREE = EntityBlueprint("Tree", 10.0, 8.0, svgName2color("brown", black), 0.0);
+WANDERER = EntityBlueprint("Wanderer", 2.0, 4.0, black, 0.33);
+PLAYER = EntityBlueprint("Player", 2.0, 4.0, svgName2color("violet", black), 0.33);
+HARE  = EntityBlueprint("Hare", 2.0, 3.0, white, 0.9);
+GRASS = EntityBlueprint("Grass", 0.0, 2.0, green, 0.0);
+WOLF = EntityBlueprint("Wolf", 10.0, 6.0, red, 0.6);
+
+BCircle(radius : double, coords : Point);
+
+Entity(
+	blueprint : EntityBlueprint,
+	bounds : DynamicBehaviour<BCircle>,
+);
 
 WorldState(entities : [Entity]);
 
-// main() {
-// 	println("Hello console!!!");
-// 	coords = make(Pair(0., 0.));
-// 	mrender(makeMaterialManager([]), false, MGroup([
-// 		MCircle(10., [Fill(grey)]),
-// 		MSelect(coords, unpairC(\x,y -> {
-// 			MOffset(x, y, MCircle(10., [Fill(grey)]));
-// 		}))
-// 	]));
-
-// 	updateLoop(\ -> next(coords, unpair(getValue(coords), \x, y -> Pair(x + 0.2, y + 0.2))));
-// }
-
 main() {
-
-	w = WorldState(map(enumFromTo(1, 300), \__ -> {
-		Entity(yellow, BCircle(5.0, Point(random() * 500.0, random() * 500.0)), true)
+	w = WorldState(map(enumFromTo(1, 1000), \__ -> {
+		Entity(TREE, make(BCircle(5.0, Point(random() * 500.0, random() * 500.0))))
 	}));
 	renderWorld(w)
 }
@@ -38,12 +52,12 @@ updateLoop(i : int, update : (int) -> void) -> void {
 }
 
 renderWorld(world : WorldState) -> void {
-	directions = map(world.entities, \__ -> Point(random() * 0.1, random() * 0.1));
-	eCoords = map(world.entities, \e -> make(e.bounds.coords));
+	directions = map(world.entities, \__ -> Point((random() - 0.5) * 0.01, (random() - 0.5) * 0.01));
+	eCoords = map(world.entities, \e -> make(getValue(e.bounds).coords));
 	mrender(makeMaterialManager([]), false, MGroup(zipWith(world.entities, eCoords, \entity, dirM -> {
-		b = entity.bounds;
+		b = getValue(entity.bounds);
 		coords = b.coords;
-		MSelect(dirM, \dir -> MOffset(dir.x - b.r, dir.y - b.r, MCircle(b.r, [Fill(entity.color)])))
+		MSelect(dirM, \dir -> MOffset(dir.x - b.radius, dir.y - b.radius, MCircle(b.radius, [Fill(entity.blueprint.color)])))
 	})));
 	updateLoop(0, \n -> {
 		iteri(eCoords, \i, c -> {
