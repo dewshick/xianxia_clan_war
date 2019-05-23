@@ -10,24 +10,20 @@ GameObjectSchema(
 	color : int,
 	speed : double,
 	goals : [Goal]
-	// genus : Genus,
-	// size : Size,
-	// food : Genus
-	// maxLifetime : int //use UInt64 later
 );
 
-// Genus ::= Plant, Animal;
-// 	Plant(); Animal(); Nothing();
+Goal ::= Wander, Hunt, Reproduce, Avoid;
+	Wander();
+	Hunt(schema : string);
+	Reproduce();
+	Avoid(schema : string);
 
-// Size ::= Big, Small;
-// 	Big(); Small();
-
-TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0);
-WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33);
-PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33);
-HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9);
-GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0);
-WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6);
+TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [Reproduce()]);
+WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [Wander()]);
+PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, []);
+HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [Hunt("Grass"), Avoid("Wolf")]);
+WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [Hunt("Hare")]);
+GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [Reproduce()]);
 
 BCircle(radius : double, coords : Point);
 
