@@ -9,19 +9,21 @@ GameObjectSchema(
 	radius : double,
 	color : int,
 	speed : double,
-	goals : [Goal]
+	initGoals : [Goal]
 );
 
-Goal ::= Wander, Hunt, Reproduce, Avoid;
+Goal ::= Wander, Hunt, Reproduce, Avoid, MoveTowards;
 	Wander();
 	Hunt(schema : string);
 	Reproduce();
 	Avoid(schema : string);
+	MoveTowards(coords : Point);
 
+//TODO: maybe static checks for references in Avoid/Hunt? or constants?
 TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [Reproduce()]);
 WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [Wander()]);
 PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, []);
-HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [Hunt("Grass"), Avoid("Wolf")]);
+HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [Avoid("Wolf"), Hunt("Grass")]);
 WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [Hunt("Hare")]);
 GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [Reproduce()]);
 
@@ -30,19 +32,20 @@ BCircle(radius : double, coords : Point);
 GameObject(
 	schema : GameObjectSchema,
 	bounds : DynamicBehaviour<BCircle>,
+	goals : [Goal]
 );
 
 mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
-	GameObject(schema, make(BCircle(schema.radius, coords)))
+	GameObject(schema, make(BCircle(schema.radius, coords)), schema.initGoals)
 }
 
-WorldState(size : Point, entities : [GameObject]);
+WorldState(size : Point, gameObjects : [GameObject]);
 
 generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
 	coords = Point(random() * world.size.x, random() * world.size.y);
 	if (attempts == 0) {
 		None()
-	} else if (!exists(world.entities, \e -> {
+	} else if (!exists(world.gameObjects, \e -> {
 		bounds = getValue(e.bounds);
 		distance(bounds.coords, coords) < bounds.radius + schema.radius + schema.distToObj
 	})) {
@@ -54,6 +57,14 @@ generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int
 
 distance(a : Point, b : Point) -> double {
 	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
+}
+
+multPointScalar(a : Point, n : double) -> Point {
+	Point(a.x * n, a.y * n)
+}
+
+minusPoint(a : Point, b : Point) -> Point {
+	Point(a.x - b.x, a.y - b.y)
 }
 
 generateWorld(size : Point) -> WorldState {
@@ -69,7 +80,7 @@ generateWorld(size : Point) -> WorldState {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
 				generateGameObject(w, schema, 10), 
-				\obj -> Pair(true, WorldState(w.size, arrayPush(w.entities, obj))), 
+				\obj -> Pair(true, WorldState(w.size, arrayPush(w.gameObjects, obj))), 
 				Pair(false, w)
 			);
 			if (!result.first) { 	println("Fail: " + schema.name + " on " + i2s(i) + "of " + i2s(count)); }
@@ -84,6 +95,45 @@ main() {
 	renderWorld(generateWorld(Point(200.0, 200.0)))
 }
 
+// todo: update world via fold with each updated gameObj
+updateWorld(world : WorldState) -> WorldState {
+	WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)))
+}
+
+updGameObject(world : WorldState, obj : GameObject) -> GameObject {
+	either(findmap(obj.goals, \g -> switch (g) {
+		Wander() : maybeMap(generateGameObject(world, obj.schema, 10), \newDest -> {
+			updGoals : [Goal] = concat([MoveTowards(getValue(newDest.bounds).coords)], obj.goals);
+			updGameObject(world, GameObject(obj with goals=updGoals));
+		});
+		Hunt(schema) : None(); //TODO
+		Reproduce() : None(); //TODO
+		Avoid(schema) : None(); //TODO
+		MoveTowards(coords) : {
+			b = getValue(obj.bounds);
+			if (distance(coords, b.coords) < 2.0) {
+				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
+			} else {
+				next(obj.bounds, BCircle(b.radius, multPointScalar(minusPoint(coords, b.coords), obj.schema.speed)));
+				None();
+			}
+		};
+	}), obj);
+}
+
+// fn avoid_collision<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Direction
+// where T : Iterator<Item=&'a CircleBounds> {
+// 	let active_obs = obstacles.filter(|obs| obs.coords.dist(&bounds.coords) < obs.r + bounds.r &&
+// 		(*target - bounds.coords).mults(&(obs.coords - bounds.coords)) > -0.1
+// 	);
+
+// 	let (avoid, count) = active_obs.fold((Direction::init(), 0), |(dir, count), obs| {
+// 		(dir + (obs.coords - bounds.coords).norm().multf(bounds.r + obs.r - bounds.coords.dist(&obs.coords)), count + 1)
+// 	});
+
+// 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as Dist)
+// }
+
 updateLoop(i : int, update : (int) -> void) -> void {
 	timer(20, \ -> {
 		update(i);
@@ -92,13 +142,13 @@ updateLoop(i : int, update : (int) -> void) -> void {
 }
 
 renderWorld(world : WorldState) -> () -> void {
-	eCoords = map(world.entities, \e -> make(getValue(e.bounds).coords));
+	eCoords = map(world.gameObjects, \e -> make(getValue(e.bounds).coords));
 	mrender(makeMaterialManager([]), false, MGroup(concat(
 		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
-		zipWith(world.entities, eCoords, \entity, dirM -> {
-			b = getValue(entity.bounds);
+		zipWith(world.gameObjects, eCoords, \gameObj, dirM -> {
+			b = getValue(gameObj.bounds);
 			coords = b.coords;
-			MSelect(dirM, \dir -> MOffset(dir.x - b.radius, dir.y - b.radius, MCircle(b.radius, [Fill(entity.schema.color)])))
+			MSelect(dirM, \dir -> MOffset(dir.x - b.radius, dir.y - b.radius, MCircle(b.radius, [Fill(gameObj.schema.color)])))
 		})
 	)));
 }
