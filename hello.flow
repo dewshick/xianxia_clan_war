@@ -21,7 +21,7 @@ GameObjectSchema(
 // Size ::= Big, Small;
 // 	Big(); Small();
 
-TREE = GameObjectSchema("Tree", 10.0, 8.0, svgName2color("brown", black), 0.0);
+TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0);
 WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33);
 PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33);
 HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9);
@@ -78,9 +78,10 @@ generateWorld(size : Point) -> WorldState {
 	});
 }
 
+worldSize = Point(2048.0, 2048.0);
 
 main() {
-	renderWorld(generateWorld(Point(1000.0, 500.0)))
+	renderWorld(generateWorld(worldSize))
 }
 
 updateLoop(i : int, update : (int) -> void) -> void {
@@ -93,7 +94,7 @@ updateLoop(i : int, update : (int) -> void) -> void {
 renderWorld(world : WorldState) -> void {
 	eCoords = map(world.entities, \e -> make(getValue(e.bounds).coords));
 	mrender(makeMaterialManager([]), false, MGroup(concat(
-		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(1000.0, 500.0))], 
+		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(worldSize.x, worldSize.y))], 
 		zipWith(world.entities, eCoords, \entity, dirM -> {
 			b = getValue(entity.bounds);
 			coords = b.coords;
