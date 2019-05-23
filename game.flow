@@ -9,6 +9,7 @@ GameObjectSchema(
 	radius : double,
 	color : int,
 	speed : double,
+	goals : [Goal]
 	// genus : Genus,
 	// size : Size,
 	// food : Genus
