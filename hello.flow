@@ -26,7 +26,7 @@ WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33);
 PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33);
 HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9);
 GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0);
-WOLF = GameObjectSchema("Wolf", 10.0, 6.0, red, 0.6);
+WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6);
 
 BCircle(radius : double, coords : Point);
 
@@ -39,19 +39,19 @@ mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
 	GameObject(schema, make(BCircle(schema.radius, coords)))
 }
 
-WorldState(entities : [GameObject]);
+WorldState(size : Point, entities : [GameObject]);
 
-generateGameObject(state : WorldState, size : Point, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
-	coords = Point(random() * size.x, random() * size.y);
+generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
+	coords = Point(random() * world.size.x, random() * world.size.y);
 	if (attempts == 0) {
 		None()
-	} else if (!exists(state.entities, \e -> {
+	} else if (!exists(world.entities, \e -> {
 		bounds = getValue(e.bounds);
 		distance(bounds.coords, coords) < bounds.radius + schema.radius + schema.distToObj
 	})) {
 		Some(mkGameObject(schema, coords))
 	} else {
-		generateGameObject(state, size, schema, attempts-1)
+		generateGameObject(world, schema, attempts-1)
 	}
 }
 
@@ -60,28 +60,31 @@ distance(a : Point, b : Point) -> double {
 }
 
 generateWorld(size : Point) -> WorldState {
+	sizeMult = \i -> ceil(i2d(i) * size.x * size.y / (defaultSize.x * defaultSize.y));
 	fold([
-		Pair(TREE, 400), 
-		Pair(WANDERER, 30), 
+		Pair(TREE, sizeMult(190)), 
 		Pair(PLAYER, 1), 
-		Pair(HARE, 50), 
-		Pair(WOLF, 10),
-		Pair(GRASS, 10000), 
-	], WorldState([]), \world, schemaCount -> {
-		foldUntil(enumFromTo(1, schemaCount.second), world, \w, __ -> {
-			eitherMap(
-				generateGameObject(w, size, schemaCount.first, 10), 
-				\obj -> Pair(true, WorldState(arrayPush(w.entities, obj))), 
+		Pair(HARE, sizeMult(50)), 
+		Pair(WOLF, sizeMult(10)),
+		Pair(WANDERER, sizeMult(30)), 
+		Pair(GRASS, sizeMult(5000)), 
+	], WorldState(size, []), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
+		foldUntil(enumFromTo(1, count), world, \w, i -> {
+			result = eitherMap(
+				generateGameObject(w, schema, 10), 
+				\obj -> Pair(true, WorldState(w.size, arrayPush(w.entities, obj))), 
 				Pair(false, w)
-			)
+			);
+			if (!result.first) { 	println("Fail: " + schema.name + " on " + i2s(i) + "of " + i2s(count)); }
+			result
 		})
-	});
+	}));
 }
 
-worldSize = Point(2048.0, 2048.0);
+defaultSize = Point(1024.0, 600.0);
 
 main() {
-	renderWorld(generateWorld(worldSize))
+	renderWorld(generateWorld(Point(200.0, 200.0)))
 }
 
 updateLoop(i : int, update : (int) -> void) -> void {
@@ -91,15 +94,14 @@ updateLoop(i : int, update : (int) -> void) -> void {
 	});
 }
 
-renderWorld(world : WorldState) -> void {
+renderWorld(world : WorldState) -> () -> void {
 	eCoords = map(world.entities, \e -> make(getValue(e.bounds).coords));
 	mrender(makeMaterialManager([]), false, MGroup(concat(
-		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(worldSize.x, worldSize.y))], 
+		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
 		zipWith(world.entities, eCoords, \entity, dirM -> {
 			b = getValue(entity.bounds);
 			coords = b.coords;
 			MSelect(dirM, \dir -> MOffset(dir.x - b.radius, dir.y - b.radius, MCircle(b.radius, [Fill(entity.schema.color)])))
 		})
 	)));
-	println("make it void for now");
 }
