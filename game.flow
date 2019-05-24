@@ -44,18 +44,22 @@ mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
 WorldState(size : Point, gameObjects : [GameObject]);
 
 generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
-	coords = Point(random() * world.size.x, random() * world.size.y);
+	newObj = mkGameObject(schema, Point(random() * world.size.x, random() * world.size.y));
 	if (attempts == 0) {
 		None()
-	} else if (!exists(world.gameObjects, \obj -> {
-		bounds = getValue(obj.bounds);
-		distance(bounds.coords, coords) < bounds.radius + schema.radius + schema.distToObj &&
-		intersection(obj.schema.collisionPlane, schema.collisionPlane) != []
-	})) {
-		Some(mkGameObject(schema, coords))
+	} else if (!exists(world.gameObjects, \obj -> collidesWith(newObj, obj, schema.distToObj))) {
+		Some(newObj)
 	} else {
 		generateGameObject(world, schema, attempts-1)
 	}
+}
+
+collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
+	bounds = getValue(obj.bounds);
+	bounds2 = getValue(obj2.bounds);
+
+	distance(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
+	intersection(obj.schema.collisionPlane, obj2.schema.collisionPlane) != []
 }
 
 distance(a : Point, b : Point) -> double {
