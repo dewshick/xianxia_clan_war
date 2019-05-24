@@ -1,0 +1,44 @@
+import math/geometry;
+import game_types;
+import ds/arrayutils;
+
+export {
+	collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool;
+	moveTowards(moved : GameObject, towards : GameObject) -> GameObject;
+}
+
+collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
+	bounds = getValue(obj.bounds);
+	bounds2 = getValue(obj2.bounds);
+
+	distance(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
+	intersection(obj.schema.collisionPlane, obj2.schema.collisionPlane) != []
+}
+
+moveTowards(moved : GameObject, towards : GameObject) -> GameObject {
+	b = getValue(moved.bounds);
+	direction = minusPoint(getValue(towards.bounds).coords, b.coords);
+	movement = multPointScalar(direction, moved.schema.speed / vecLength(direction));
+	next(moved.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
+	moved
+}
+
+distance(a : Point, b : Point) -> double {
+	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
+}
+
+vecLength(a : Point) -> double {
+	distance(Point(0.0, 0.0), a)
+}
+
+multPointScalar(a : Point, n : double) -> Point {
+	Point(a.x * n, a.y * n)
+}
+
+minusPoint(a : Point, b : Point) -> Point {
+	Point(a.x - b.x, a.y - b.y)
+}
+
+plusPoint(a : Point, b : Point) -> Point {
+	Point(a.x + b.x, a.y + b.y)
+}

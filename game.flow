@@ -1,47 +1,12 @@
 import material/material_graphics;
 import material/material_manager;
 import material/material_dialog;
-
-
-GameObjectSchema(
-	name : string,
-	distToObj : double,
-	radius : double,
-	color : int,
-	speed : double,
-	collisionPlane : [int], // units with common planes avoid collisions with each other
-	initGoals : [Goal]
-);
-
-Goal ::= Wander, Hunt, Reproduce, Avoid, MoveTowards;
-	Wander();
-	Hunt(schema : string);
-	Reproduce();
-	Avoid(schema : string);
-	MoveTowards(obj : GameObject);
-
-// TODO: maybe static checks for references in Avoid/Hunt? or constants?
-// we cant have mutually recursive values, referring to each other unfortunately
-TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [0, 2], [Reproduce()]);
-WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [2], [Wander()]);
-PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, [2], []);
-HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [2], [Avoid("Wolf"), Hunt("Grass")]);
-WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [2], [Hunt("Hare")]);
-GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [0], [Reproduce()]);
-
-BCircle(radius : double, coords : Point);
-
-GameObject(
-	schema : GameObjectSchema,
-	bounds : DynamicBehaviour<BCircle>,
-	goals : [Goal]
-);
+import collisions;
 
 mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
 	GameObject(schema, make(BCircle(schema.radius, coords)), schema.initGoals)
 }
 
-WorldState(size : Point, gameObjects : [GameObject]);
 
 generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
 	newObj = mkGameObject(schema, Point(random() * world.size.x, random() * world.size.y));
@@ -52,34 +17,6 @@ generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int
 	} else {
 		generateGameObject(world, schema, attempts-1)
 	}
-}
-
-collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
-	bounds = getValue(obj.bounds);
-	bounds2 = getValue(obj2.bounds);
-
-	distance(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
-	intersection(obj.schema.collisionPlane, obj2.schema.collisionPlane) != []
-}
-
-distance(a : Point, b : Point) -> double {
-	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
-}
-
-vecLength(a : Point) -> double {
-	distance(Point(0.0, 0.0), a)
-}
-
-multPointScalar(a : Point, n : double) -> Point {
-	Point(a.x * n, a.y * n)
-}
-
-minusPoint(a : Point, b : Point) -> Point {
-	Point(a.x - b.x, a.y - b.y)
-}
-
-plusPoint(a : Point, b : Point) -> Point {
-	Point(a.x + b.x, a.y + b.y)
 }
 
 generateWorld(size : Point) -> WorldState {
@@ -130,11 +67,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 			if (collidesWith(obj, obj2, 0.0)) {
 				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
 			} else {
-				b = getValue(obj.bounds);
-				direction = minusPoint(getValue(obj2.bounds).coords, b.coords);
-				movement = multPointScalar(direction, obj.schema.speed / vecLength(direction));
-				next(obj.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
-				Some(obj);
+				Some(moveTowards(obj, obj2))
 			}
 		};
 	}), obj);

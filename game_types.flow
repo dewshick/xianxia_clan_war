@@ -1,0 +1,44 @@
+import behaviour;
+import svg_colorname;
+import math/geometry;
+import basecolors;
+
+export {
+
+	WorldState(size : Point, gameObjects : [GameObject]);
+
+	GameObject(
+		schema : GameObjectSchema,
+		bounds : DynamicBehaviour<BCircle>,
+		goals : [Goal]
+	);
+
+	GameObjectSchema(
+		name : string,
+		distToObj : double,
+		radius : double,
+		color : int,
+		speed : double,
+		collisionPlane : [int], // units with common planes avoid collisions with each other
+		initGoals : [Goal]
+	);
+
+	// TODO: maybe static checks for references in Avoid/Hunt? or constants?
+	// we cant have mutually recursive values, referring to each other unfortunately
+	TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [0, 2], [Reproduce()]);
+	WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [2], [Wander()]);
+	PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, [2], []);
+	HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [2], [Avoid("Wolf"), Hunt("Grass")]);
+	WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [2], [Hunt("Hare")]);
+	GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [0], [Reproduce()]);
+
+	BCircle(radius : double, coords : Point);
+
+	Goal ::= Wander, Hunt, Reproduce, Avoid, MoveTowards;
+		Wander();
+		Hunt(schema : string);
+		Reproduce();
+		Avoid(schema : string);
+		MoveTowards(obj : GameObject);
+}
+
