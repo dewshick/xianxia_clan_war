@@ -13,6 +13,8 @@ export {
 		goals : [Goal]
 	);
 
+	mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject;
+
 	GameObjectSchema(
 		name : string,
 		distToObj : double,
@@ -42,3 +44,7 @@ export {
 		MoveTowards(obj : GameObject);
 }
 
+
+mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
+	GameObject(schema, make(BCircle(schema.radius, coords)), schema.initGoals)
+}

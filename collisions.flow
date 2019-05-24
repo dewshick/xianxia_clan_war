@@ -4,22 +4,24 @@ import ds/arrayutils;
 
 export {
 	collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool;
-	moveTowards(moved : GameObject, towards : GameObject) -> GameObject;
+	moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject;
 }
 
 collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 	bounds = getValue(obj.bounds);
 	bounds2 = getValue(obj2.bounds);
 
+	obj != obj2 &&
 	distance(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
 	intersection(obj.schema.collisionPlane, obj2.schema.collisionPlane) != []
 }
 
-moveTowards(moved : GameObject, towards : GameObject) -> GameObject {
+moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject {
 	b = getValue(moved.bounds);
 	direction = minusPoint(getValue(towards.bounds).coords, b.coords);
 	movement = multPointScalar(vecNorm(direction), moved.schema.speed);
 	next(moved.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
+	// TODO avoid collisions
 	moved
 }
 
@@ -32,8 +34,10 @@ distance(a : Point, b : Point) -> double {
 }
 
 vecLength(a : Point) -> double {
-	distance(Point(0.0, 0.0), a)
+	distance(vecInit, a)
 }
+
+vecInit = Point(0.0, 0.0);
 
 multPointScalar(a : Point, n : double) -> Point {
 	Point(a.x * n, a.y * n)
@@ -47,17 +51,26 @@ plusPoint(a : Point, b : Point) -> Point {
 	Point(a.x + b.x, a.y + b.y)
 }
 
+ortPoint(a : Point) -> Point {
+	Point(a.y, -a.x)
+}
 
+avoidCollision(moved : GameObject, world : WorldState) -> Point {
+	colliding = filter(world.gameObjects, \obj -> collidesWith(moved, obj, 0.0));
+	bounds = getValue(moved.bounds);
+	collisionVec = fold(colliding, vecInit, \vec, obj -> {
+		collBounds = getValue(obj.bounds);
+		direction = vecNorm(minusPoint(collBounds.coords, bounds.coords));
+		plusPoint(vec, multPointScalar(direction, distance(collBounds.coords, bounds.coords)))
+	});
+	multPointScalar(ortPoint(vecNorm(collisionVec)), 1.0 / i2d(max(length(colliding), 1)));
+}
 
-// fn avoid_collision<'a, T>(bounds : &CircleBounds, target : &Point, obstacles : &mut T) -> Direction
-// where T : Iterator<Item=&'a CircleBounds> {
-// 	let active_obs = obstacles.filter(|obs| obs.coords.dist(&bounds.coords) < obs.r + bounds.r &&
-// 		(*target - bounds.coords).mults(&(obs.coords - bounds.coords)) > -0.1
-// 	);
+test() {
+	w1 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(2.0, 2.0))]);
+	println(avoidCollision(w1.gameObjects[0], w1));
+	println(avoidCollision(w1.gameObjects[1], w1));
 
-// 	let (avoid, count) = active_obs.fold((Direction::init(), 0), |(dir, count), obs| {
-// 		(dir + (obs.coords - bounds.coords).norm().multf(bounds.r + obs.r - bounds.coords.dist(&obs.coords)), count + 1)
-// 	});
-
-// 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as Dist)
-// }
+	w2 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(1.0, 1.0))]);
+	println(avoidCollision(mkGameObject(HARE, Point(1.0, 1.0)), w2));
+}

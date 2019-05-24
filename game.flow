@@ -3,11 +3,6 @@ import material/material_manager;
 import material/material_dialog;
 import collisions;
 
-mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
-	GameObject(schema, make(BCircle(schema.radius, coords)), schema.initGoals)
-}
-
-
 generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
 	newObj = mkGameObject(schema, Point(random() * world.size.x, random() * world.size.y));
 	if (attempts == 0) {
@@ -31,7 +26,7 @@ generateWorld(size : Point) -> WorldState {
 	], WorldState(size, []), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
-				generateGameObject(w, schema, 10), 
+				generateGameObject(w, schema, 5), 
 				\obj -> Pair(true, WorldState(w.size, arrayPush(w.gameObjects, obj))), 
 				Pair(false, w)
 			);
@@ -44,7 +39,7 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(Point(200.0, 200.0));
+	world = generateWorld(defaultSize /*Point(200.0, 200.0)*/);
 	renderWorld(world);
 	updateWorldLoop(world);
 }
@@ -74,7 +69,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 }
 
 updateWorldLoop(world : WorldState) -> void {
-	timer(20, \ -> {
+	timer(33, \ -> {
 		updW = WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)));
 		updateWorldLoop(updW);
 	});
