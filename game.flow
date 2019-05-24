@@ -59,12 +59,20 @@ distance(a : Point, b : Point) -> double {
 	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
 }
 
+vecLength(a : Point) -> double {
+	distance(Point(0.0, 0.0), a)
+}
+
 multPointScalar(a : Point, n : double) -> Point {
 	Point(a.x * n, a.y * n)
 }
 
 minusPoint(a : Point, b : Point) -> Point {
 	Point(a.x - b.x, a.y - b.y)
+}
+
+plusPoint(a : Point, b : Point) -> Point {
+	Point(a.x + b.x, a.y + b.y)
 }
 
 generateWorld(size : Point) -> WorldState {
@@ -92,7 +100,9 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	renderWorld(generateWorld(Point(200.0, 200.0)))
+	world = generateWorld(Point(200.0, 200.0));
+	renderWorld(world);
+	updateWorldLoop(world);
 }
 
 // todo: update world via fold with each updated gameObj
@@ -111,11 +121,13 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 		Avoid(schema) : None(); //TODO
 		MoveTowards(coords) : {
 			b = getValue(obj.bounds);
-			if (distance(coords, b.coords) < 2.0) {
+			if (distance(coords, b.coords) < b.radius + 1.0) {
 				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
 			} else {
-				next(obj.bounds, BCircle(b.radius, multPointScalar(minusPoint(coords, b.coords), obj.schema.speed)));
-				None();
+				direction = minusPoint(coords, b.coords);
+				movement = multPointScalar(direction, obj.schema.speed / vecLength(direction));
+				next(obj.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
+				Some(obj);
 			}
 		};
 	}), obj);
@@ -134,21 +146,21 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 // 	(avoid.norm().ort() - avoid).multf(1.0/ count.max(1) as Dist)
 // }
 
-updateLoop(i : int, update : (int) -> void) -> void {
+updateWorldLoop(world : WorldState) -> void {
 	timer(20, \ -> {
-		update(i);
-		updateLoop(i + 1, update);
+		updW = WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)));
+		updateWorldLoop(updW);
 	});
 }
 
 renderWorld(world : WorldState) -> () -> void {
-	eCoords = map(world.gameObjects, \e -> make(getValue(e.bounds).coords));
 	mrender(makeMaterialManager([]), false, MGroup(concat(
 		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
-		zipWith(world.gameObjects, eCoords, \gameObj, dirM -> {
-			b = getValue(gameObj.bounds);
-			coords = b.coords;
-			MSelect(dirM, \dir -> MOffset(dir.x - b.radius, dir.y - b.radius, MCircle(b.radius, [Fill(gameObj.schema.color)])))
+		map(world.gameObjects, \gameObj -> {
+			MSelect(gameObj.bounds, \bounds -> {
+				MOffset(bounds.coords.x - bounds.radius, bounds.coords.y - bounds.radius, 
+					MCircle(bounds.radius, [Fill(gameObj.schema.color)]))
+			})
 		})
 	)));
 }
