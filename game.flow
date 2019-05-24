@@ -9,6 +9,7 @@ GameObjectSchema(
 	radius : double,
 	color : int,
 	speed : double,
+	collisionPlane : [int], // units with common planes avoid collisions with each other
 	initGoals : [Goal]
 );
 
@@ -19,13 +20,14 @@ Goal ::= Wander, Hunt, Reproduce, Avoid, MoveTowards;
 	Avoid(schema : string);
 	MoveTowards(coords : Point);
 
-//TODO: maybe static checks for references in Avoid/Hunt? or constants?
-TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [Reproduce()]);
-WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [Wander()]);
-PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, []);
-HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [Avoid("Wolf"), Hunt("Grass")]);
-WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [Hunt("Hare")]);
-GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [Reproduce()]);
+// TODO: maybe static checks for references in Avoid/Hunt? or constants?
+// we cant have mutually recursive values, referring to each other unfortunately
+TREE = GameObjectSchema("Tree", 15.0, 8.0, svgName2color("brown", black), 0.0, [0, 2], [Reproduce()]);
+WANDERER = GameObjectSchema("Wanderer", 2.0, 4.0, black, 0.33, [2], [Wander()]);
+PLAYER = GameObjectSchema("Player", 2.0, 4.0, svgName2color("violet", black), 0.33, [2], []);
+HARE  = GameObjectSchema("Hare", 2.0, 3.0, white, 0.9, [2], [Avoid("Wolf"), Hunt("Grass")]);
+WOLF = GameObjectSchema("Wolf", 10.0, 6.0, svgName2color("lightblue", black), 0.6, [2], [Hunt("Hare")]);
+GRASS = GameObjectSchema("Grass", 0.0, 2.0, green, 0.0, [0], [Reproduce()]);
 
 BCircle(radius : double, coords : Point);
 
@@ -45,9 +47,10 @@ generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int
 	coords = Point(random() * world.size.x, random() * world.size.y);
 	if (attempts == 0) {
 		None()
-	} else if (!exists(world.gameObjects, \e -> {
-		bounds = getValue(e.bounds);
-		distance(bounds.coords, coords) < bounds.radius + schema.radius + schema.distToObj
+	} else if (!exists(world.gameObjects, \obj -> {
+		bounds = getValue(obj.bounds);
+		distance(bounds.coords, coords) < bounds.radius + schema.radius + schema.distToObj &&
+		intersection(obj.schema.collisionPlane, schema.collisionPlane) != []
 	})) {
 		Some(mkGameObject(schema, coords))
 	} else {
@@ -79,11 +82,11 @@ generateWorld(size : Point) -> WorldState {
 	sizeMult = \i -> ceil(i2d(i) * size.x * size.y / (defaultSize.x * defaultSize.y));
 	fold([
 		Pair(TREE, sizeMult(190)), 
+		Pair(GRASS, sizeMult(7000)), 
 		Pair(PLAYER, 1), 
 		Pair(HARE, sizeMult(50)), 
 		Pair(WOLF, sizeMult(10)),
 		Pair(WANDERER, sizeMult(30)), 
-		Pair(GRASS, sizeMult(5000)), 
 	], WorldState(size, []), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
