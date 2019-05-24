@@ -3,13 +3,22 @@ import game_types;
 import ds/arrayutils;
 
 export {
-	collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool;
+	collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool;
 	moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject;
+	setupObjectsIndex(world : WorldState) -> WorldState;
+	collidesWith(obj : GameObject, world : WorldState, dist : double) -> [GameObject];
+}
+
+setupObjectsIndex(world : WorldState) -> WorldState {
+	index = foldi(world.gameObjects, initObjectsByLayer, \obji, arr, obj -> {
+		fold(obj.schema.collisionPlane, arr, \arrUpd, i -> replace(arrUpd, i, arrayPush(arrUpd[i], obji)))
+	});
+	WorldState(world with objectsByLayer = index)
 }
 
 gameSpeedup = 5.0;
 
-collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
+collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 	bounds = getValue(obj.bounds);
 	bounds2 = getValue(obj2.bounds);
 
@@ -18,38 +27,45 @@ collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 	intersection(obj.schema.collisionPlane, obj2.schema.collisionPlane) != []
 }
 
+collidesWith(obj : GameObject, world : WorldState, dist : double) -> [GameObject] {
+	objectsFromSamePlane = mapConcat(obj.schema.collisionPlane, \i -> {
+		map(world.objectsByLayer[i], \j -> world.gameObjects[j])
+	});
+	uniq(filter(objectsFromSamePlane, \o -> collide(obj, o, 0.0)));
+}
+
 moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject {
 	b = getValue(moved.bounds);
-	direction = vecNorm(minusPoint(getValue(towards.bounds).coords, b.coords));
+	direction = normP(minusP(getValue(towards.bounds).coords, b.coords));
 	avoid = avoidCollision(moved, world);
-	movement = multPointScalar(if (vecLength(avoid) > 0.01) avoid else direction, moved.schema.speed * gameSpeedup);
-	next(moved.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
+	movement = multP(if (lengthP(avoid) > 0.01) avoid else direction, moved.schema.speed * gameSpeedup);
+	next(moved.bounds, BCircle(b.radius, plusP(b.coords, movement)));
 	moved
 }
 
-vecNorm(a : Point) -> Point {
-	multPointScalar(a, 1.0 / max(vecLength(a), 0.00001))
+normP(a : Point) -> Point {
+	multP(a, 1.0 / max(lengthP(a), 0.00001))
 }
 
 distance(a : Point, b : Point) -> double {
 	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
 }
 
-vecLength(a : Point) -> double {
+lengthP(a : Point) -> double {
 	distance(vecInit, a)
 }
 
 vecInit = Point(0.0, 0.0);
 
-multPointScalar(a : Point, n : double) -> Point {
+multP(a : Point, n : double) -> Point {
 	Point(a.x * n, a.y * n)
 }
 
-minusPoint(a : Point, b : Point) -> Point {
+minusP(a : Point, b : Point) -> Point {
 	Point(a.x - b.x, a.y - b.y)
 }
 
-plusPoint(a : Point, b : Point) -> Point {
+plusP(a : Point, b : Point) -> Point {
 	Point(a.x + b.x, a.y + b.y)
 }
 
@@ -58,21 +74,21 @@ ortPoint(a : Point) -> Point {
 }
 
 avoidCollision(moved : GameObject, world : WorldState) -> Point {
-	colliding = filter(world.gameObjects, \obj -> collidesWith(moved, obj, 0.0));
+	colliding = collidesWith(moved, world, 0.0);
 	bounds = getValue(moved.bounds);
 	collisionVec = fold(colliding, vecInit, \vec, obj -> {
 		collBounds = getValue(obj.bounds);
-		direction = vecNorm(minusPoint(collBounds.coords, bounds.coords));
-		plusPoint(vec, multPointScalar(direction, distance(collBounds.coords, bounds.coords)))
+		direction = normP(minusP(collBounds.coords, bounds.coords));
+		plusP(vec, multP(direction, distance(collBounds.coords, bounds.coords)))
 	});
-	multPointScalar(ortPoint(vecNorm(collisionVec)), 1.0 / i2d(max(length(colliding), 1)));
+	multP(ortPoint(normP(collisionVec)), 1.0 / i2d(max(length(colliding), 1)));
 }
 
 test() {
-	w1 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(2.0, 2.0))]);
+	w1 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(2.0, 2.0))], []);
 	println(avoidCollision(w1.gameObjects[0], w1));
 	println(avoidCollision(w1.gameObjects[1], w1));
 
-	w2 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(1.0, 1.0))]);
+	w2 = WorldState(Point(0.0, 0.0), [mkGameObject(HARE, Point(1.0, 1.0)), mkGameObject(HARE, Point(1.0, 1.0))], []);
 	println(avoidCollision(mkGameObject(HARE, Point(1.0, 1.0)), w2));
 }

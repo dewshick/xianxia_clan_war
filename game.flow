@@ -7,7 +7,7 @@ generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int
 	newObj = mkGameObject(schema, Point(random() * world.size.x, random() * world.size.y));
 	if (attempts == 0) {
 		None()
-	} else if (!exists(world.gameObjects, \obj -> collidesWith(newObj, obj, schema.distToObj))) {
+	} else if (collidesWith(newObj, world, schema.distToObj) == []) {
 		Some(newObj)
 	} else {
 		generateGameObject(world, schema, attempts-1)
@@ -16,37 +16,40 @@ generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int
 
 generateWorld(size : Point) -> WorldState {
 	sizeMult = \i -> ceil(i2d(i) * size.x * size.y / (defaultSize.x * defaultSize.y));
-	fold([
+	world = fold([
 		Pair(TREE, sizeMult(190)), 
 		Pair(GRASS, sizeMult(7000)), 
 		Pair(PLAYER, 1), 
 		Pair(HARE, sizeMult(50)), 
 		Pair(WOLF, sizeMult(10)),
 		Pair(WANDERER, sizeMult(30)), 
-	], WorldState(size, []), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
+	], WorldState(size, [], initObjectsByLayer), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
 				generateGameObject(w, schema, 5), 
-				\obj -> Pair(true, WorldState(w.size, arrayPush(w.gameObjects, obj))), 
+				\obj -> Pair(true, setupObjectsIndex(WorldState(w with gameObjects=arrayPush(w.gameObjects, obj)))), 
 				Pair(false, w)
 			);
 			if (!result.first) { 	println("Fail: " + schema.name + " on " + i2s(i) + "of " + i2s(count)); }
 			result
 		})
 	}));
+	world;
+
+	// setupObjectsIndex(world)
 }
 
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(Point(640.0, 480.0));
+	world = generateWorld(defaultSize);
 	renderWorld(world);
 	updateWorldLoop(world);
 }
 
 // todo: update world via fold with each updated gameObj
 updateWorld(world : WorldState) -> WorldState {
-	WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)))
+	WorldState(world with gameObjects=map(world.gameObjects, \obj -> updGameObject(world, obj)))
 }
 
 updGameObject(world : WorldState, obj : GameObject) -> GameObject {
@@ -59,7 +62,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 		Reproduce() : None(); //TODO
 		Avoid(schema) : None(); //TODO
 		MoveTowards(obj2) : {
-			if (collidesWith(obj, obj2, 0.0)) {
+			if (collide(obj, obj2, 0.0)) {
 				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
 			} else {
 				Some(moveTowards(obj, obj2, world))
@@ -70,7 +73,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 
 updateWorldLoop(world : WorldState) -> void {
 	timer(8, \ -> {
-		updW = WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)));
+		updW = WorldState(world with gameObjects=map(world.gameObjects, \obj -> updGameObject(world, obj)));
 		updateWorldLoop(updW);
 	});
 }
