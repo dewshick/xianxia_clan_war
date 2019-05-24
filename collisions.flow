@@ -7,6 +7,8 @@ export {
 	moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject;
 }
 
+gameSpeedup = 5.0;
+
 collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 	bounds = getValue(obj.bounds);
 	bounds2 = getValue(obj2.bounds);
@@ -20,7 +22,7 @@ moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> Gam
 	b = getValue(moved.bounds);
 	direction = vecNorm(minusPoint(getValue(towards.bounds).coords, b.coords));
 	avoid = avoidCollision(moved, world);
-	movement = multPointScalar(if (vecLength(avoid) > 0.01) avoid else direction, moved.schema.speed);
+	movement = multPointScalar(if (vecLength(avoid) > 0.01) avoid else direction, moved.schema.speed * gameSpeedup);
 	next(moved.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
 	moved
 }

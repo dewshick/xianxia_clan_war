@@ -39,7 +39,7 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(defaultSize /*Point(200.0, 200.0)*/);
+	world = generateWorld(Point(640.0, 480.0));
 	renderWorld(world);
 	updateWorldLoop(world);
 }
@@ -69,7 +69,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 }
 
 updateWorldLoop(world : WorldState) -> void {
-	timer(33, \ -> {
+	timer(8, \ -> {
 		updW = WorldState(world.size, map(world.gameObjects, \obj -> updGameObject(world, obj)));
 		updateWorldLoop(updW);
 	});
