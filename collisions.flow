@@ -18,15 +18,15 @@ collidesWith(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 
 moveTowards(moved : GameObject, towards : GameObject, world : WorldState) -> GameObject {
 	b = getValue(moved.bounds);
-	direction = minusPoint(getValue(towards.bounds).coords, b.coords);
-	movement = multPointScalar(vecNorm(direction), moved.schema.speed);
+	direction = vecNorm(minusPoint(getValue(towards.bounds).coords, b.coords));
+	avoid = avoidCollision(moved, world);
+	movement = multPointScalar(if (vecLength(avoid) > 0.01) avoid else direction, moved.schema.speed);
 	next(moved.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
-	// TODO avoid collisions
 	moved
 }
 
 vecNorm(a : Point) -> Point {
-	multPointScalar(a, 1.0 / vecLength(a))
+	multPointScalar(a, 1.0 / max(vecLength(a), 0.00001))
 }
 
 distance(a : Point, b : Point) -> double {

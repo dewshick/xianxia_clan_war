@@ -62,7 +62,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 			if (collidesWith(obj, obj2, 0.0)) {
 				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
 			} else {
-				Some(moveTowards(obj, obj2))
+				Some(moveTowards(obj, obj2, world))
 			}
 		};
 	}), obj);
