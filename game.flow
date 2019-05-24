@@ -18,7 +18,7 @@ Goal ::= Wander, Hunt, Reproduce, Avoid, MoveTowards;
 	Hunt(schema : string);
 	Reproduce();
 	Avoid(schema : string);
-	MoveTowards(coords : Point);
+	MoveTowards(obj : GameObject);
 
 // TODO: maybe static checks for references in Avoid/Hunt? or constants?
 // we cant have mutually recursive values, referring to each other unfortunately
@@ -120,18 +120,18 @@ updateWorld(world : WorldState) -> WorldState {
 updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 	either(findmap(obj.goals, \g -> switch (g) {
 		Wander() : maybeMap(generateGameObject(world, obj.schema, 10), \newDest -> {
-			updGoals : [Goal] = concat([MoveTowards(getValue(newDest.bounds).coords)], obj.goals);
+			updGoals : [Goal] = concat([MoveTowards(newDest)], obj.goals);
 			updGameObject(world, GameObject(obj with goals=updGoals));
 		});
 		Hunt(schema) : None(); //TODO
 		Reproduce() : None(); //TODO
 		Avoid(schema) : None(); //TODO
-		MoveTowards(coords) : {
-			b = getValue(obj.bounds);
-			if (distance(coords, b.coords) < b.radius + 1.0) {
+		MoveTowards(obj2) : {
+			if (collidesWith(obj, obj2, 0.0)) {
 				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
 			} else {
-				direction = minusPoint(coords, b.coords);
+				b = getValue(obj.bounds);
+				direction = minusPoint(getValue(obj2.bounds).coords, b.coords);
 				movement = multPointScalar(direction, obj.schema.speed / vecLength(direction));
 				next(obj.bounds, BCircle(b.radius, plusPoint(b.coords, movement)));
 				Some(obj);
