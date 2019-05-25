@@ -23,11 +23,11 @@ generateWorld(size : Point) -> WorldState {
 		Pair(HARE, sizeMult(50)), 
 		Pair(WOLF, sizeMult(10)),
 		Pair(WANDERER, sizeMult(30)), 
-	], WorldState(size, [], initObjectsByLayer), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
+	], WorldState(size, initObjectIndex()), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
 				generateGameObject(w, schema, 5), 
-				\obj -> Pair(true, setupObjectsIndex(WorldState(w with gameObjects=arrayPush(w.gameObjects, obj)))), 
+				\obj -> Pair(true, WorldState(w.size, addObjectToIndex(w.objectIndex, obj))), 
 				Pair(false, w)
 			);
 			if (!result.first) { 	println("Fail: " + schema.name + " on " + i2s(i) + "of " + i2s(count)); }
@@ -35,35 +35,28 @@ generateWorld(size : Point) -> WorldState {
 		})
 	}));
 	world;
-
-	// setupObjectsIndex(world)
 }
 
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(defaultSize);
+	world = generateWorld(defaultSize /*Point(10240.0, 10240.0)*/);
 	renderWorld(world);
 	updateWorldLoop(world);
-}
-
-// todo: update world via fold with each updated gameObj
-updateWorld(world : WorldState) -> WorldState {
-	WorldState(world with gameObjects=map(world.gameObjects, \obj -> updGameObject(world, obj)))
 }
 
 updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 	either(findmap(obj.goals, \g -> switch (g) {
 		Wander() : maybeMap(generateGameObject(world, obj.schema, 10), \newDest -> {
 			updGoals : [Goal] = concat([MoveTowards(newDest)], obj.goals);
-			updGameObject(world, GameObject(obj with goals=updGoals));
+			updGameObject(world, GameObject(obj.schema, obj.bounds, updGoals));
 		});
 		Hunt(schema) : None(); //TODO
 		Reproduce() : None(); //TODO
 		Avoid(schema) : None(); //TODO
 		MoveTowards(obj2) : {
 			if (collide(obj, obj2, 0.0)) {
-				Some(GameObject(obj with goals=removeFirst(obj.goals, g)))
+				Some(GameObject(obj.schema, obj.bounds, removeFirst(obj.goals, g)))
 			} else {
 				Some(moveTowards(obj, obj2, world))
 			}
@@ -73,7 +66,7 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 
 updateWorldLoop(world : WorldState) -> void {
 	timer(8, \ -> {
-		updW = WorldState(world with gameObjects=map(world.gameObjects, \obj -> updGameObject(world, obj)));
+		updW = WorldState(world.size, mapObjectIndex(world.objectIndex, \obj -> updGameObject(world, obj)));
 		updateWorldLoop(updW);
 	});
 }
@@ -81,7 +74,7 @@ updateWorldLoop(world : WorldState) -> void {
 renderWorld(world : WorldState) -> () -> void {
 	mrender(makeMaterialManager([]), false, MGroup(concat(
 		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
-		map(world.gameObjects, \gameObj -> {
+		map(getObjects(world.objectIndex), \gameObj -> {
 			MSelect(gameObj.bounds, \bounds -> {
 				MOffset(bounds.coords.x - bounds.radius, bounds.coords.y - bounds.radius, 
 					MCircle(bounds.radius, [Fill(gameObj.schema.color)]))
