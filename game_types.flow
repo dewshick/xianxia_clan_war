@@ -13,7 +13,7 @@ export {
 	removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex;
 	mapObjectIndex(idxObjs : ObjectIndex, fn : (GameObject) -> GameObject) -> ObjectIndex;
 	getObjects(idxObjs : ObjectIndex) -> [GameObject];
-	getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> Set<GameObject>;
+	getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> [GameObject];
 
 	GameObject(
 		schema : GameObjectSchema,
@@ -35,7 +35,7 @@ export {
 
 	ground = 0;
 	earth = 1;
-	initObjectsByLayer = [makeSet(), makeSet()];
+	initObjectsByLayer = [[], []];
 
 	// TODO: maybe static checks for references in Avoid/Hunt? or constants?
 	// we cant have mutually recursive values, referring to each other unfortunately
@@ -62,7 +62,7 @@ mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
 	GameObject(schema, make(BCircle(schema.radius, coords)), schema.initGoals)
 }
 
-ObjectIndex(objects : Tree<int, GameObject>, objectsByLayer : [Set<int>], lastInsertId : int);
+ObjectIndex(objects : Tree<int, GameObject>, objectsByLayer : [[int]], lastInsertId : int);
 
 initObjectIndex() -> ObjectIndex { ObjectIndex(makeTree(), initObjectsByLayer, -1) }
 
@@ -70,7 +70,7 @@ addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex {
 	objId = idxObjs.lastInsertId + 1;
 	newObjects = setTree(idxObjs.objects, objId, obj);
 	objectsByLayerUpd = mapi(idxObjs.objectsByLayer, \i, objects -> {
-		if (contains(obj.schema.layers, i)) insertSet(objects, objId) else objects
+		if (contains(obj.schema.layers, i)) arrayPush(objects, objId) else objects
 	});
 	ObjectIndex(newObjects, objectsByLayerUpd, objId)
 }
@@ -88,7 +88,7 @@ removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex {
 		);
 		lastInsertIdUpd = idxObjs.lastInsertId - 1;
 		objectsByLayerUpd = mapi(idxObjs.objectsByLayer, \i, objects -> {
-			if (contains(oldObj.schema.layers, i)) removeSet(objects, id) else objects
+			if (contains(oldObj.schema.layers, i)) removeAll(objects, id) else objects
 		});
 		ObjectIndex(updObjects, objectsByLayerUpd, lastInsertIdUpd)
 	}
@@ -109,7 +109,7 @@ getObjects(idxObjs : ObjectIndex) -> [GameObject] {
 	getTreeValues(idxObjs.objects)
 }
 
-getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> Set<GameObject> {
-	idxSet = fold(layers, makeSet(), \set, layer -> mergeSets(set, idxObjs.objectsByLayer[layer]));
-	mapSet(idxSet, \i -> eitherFn(lookupTree(idxObjs.objects, i), idfn, \ -> fail0("in state, missing object " + i2s(i))));
+getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> [GameObject] {
+	idxSet = fold(layers, [], \set, layer -> concat(set, idxObjs.objectsByLayer[layer]));
+	map(idxSet, \i -> eitherFn(lookupTree(idxObjs.objects, i), idfn, \ -> fail0("in state, missing object " + i2s(i))));
 }
