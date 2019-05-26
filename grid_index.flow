@@ -1,0 +1,31 @@
+import ds/tree;
+import math/geometry;
+
+export {
+	BCircle(radius : double, coords : Point);
+	initGridIndex(size : Point) -> GridIndex;
+	addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
+	removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
+	GridIndex(data : Tree<IntPoint, [int]>);
+}
+
+
+IntPoint(x : int, y : int);
+
+gridCellSize = Point(10.0, 10.0);
+
+initGridIndex(size : Point) -> GridIndex {
+	xCoords : [int] = enumFromTo(0, ceil(size.x / gridCellSize.x));
+	yCoords : [int] = enumFromTo(0, ceil(size.y / gridCellSize.y));
+
+	allCoords = mapConcat(xCoords, \x -> map(yCoords, \y -> IntPoint(x,y)));
+	GridIndex(pairs2tree(map(allCoords, \coord -> Pair(coord, []))));
+}
+
+addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
+	fail0("TODO")
+}
+
+removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
+	fail0("TODO")
+}

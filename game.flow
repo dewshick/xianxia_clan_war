@@ -23,7 +23,7 @@ generateWorld(size : Point) -> WorldState {
 		Pair(HARE, sizeMult(50)), 
 		Pair(WOLF, sizeMult(10)),
 		Pair(WANDERER, sizeMult(30)), 
-	], WorldState(size, initObjectIndex()), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
+	], initWorldState(size), \world, schemaCount -> unpair(schemaCount, \schema, count -> {
 		foldUntil(enumFromTo(1, count), world, \w, i -> {
 			result = eitherMap(
 				generateGameObject(w, schema, 5), 
