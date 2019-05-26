@@ -9,7 +9,9 @@ export {
 	removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex;
 	mapObjectIndex(idxObjs : ObjectIndex, fn : (GameObject) -> GameObject) -> ObjectIndex;
 	getObjects(idxObjs : ObjectIndex) -> [GameObject];
+	// todo make better index, unite layered index and grid
 	getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> [GameObject];
+	getNeighbourObjects(obj : GameObject, world : WorldState) -> [GameObject];
 }
 
 initWorldState(size : Point) -> WorldState {
@@ -72,4 +74,10 @@ getObjects(idxObjs : ObjectIndex) -> [GameObject] {
 getObjectsByLayers(idxObjs : ObjectIndex, layers : [int]) -> [GameObject] {
 	idxSet = fold(layers, [], \set, layer -> concat(set, idxObjs.objectsByLayer[layer]));
 	map(idxSet, \i -> eitherFn(lookupTree(idxObjs.objects.objects, i), \obj -> obj.value, \ -> fail0("in state, missing object " + i2s(i))));
+}
+
+
+getNeighbourObjects(obj : GameObject, world : WorldState) -> [GameObject] {
+	ids = uniq(mapConcat(boundingCells(getValue(obj.bounds)), \cell -> lookupTreeDef(^(world.objectIndex.grid).data, cell, [])));
+	filtermap(ids, \id -> maybeMap(lookupTree(world.objectIndex.objects.objects, id), \o -> o.value))
 }

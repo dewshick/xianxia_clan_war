@@ -1,17 +1,19 @@
 import ds/tree;
 import game_types;
+import algorithms;
 
 export {
 	initGridIndex(size : Point) -> GridIndex;
 	addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
 	removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
 	GridIndex(data : Tree<IntPoint, [int]>);
+	boundingCells(bounds : BCircle) -> [IntPoint];
 }
 
 
 IntPoint(x : int, y : int);
 
-gridCellSize = Point(10.0, 10.0);
+gridCellSize = Point(100.0, 100.0);
 
 initGridIndex(size : Point) -> GridIndex {
 	xCoords : [int] = enumFromTo(0, ceil(size.x / gridCellSize.x));

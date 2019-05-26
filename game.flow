@@ -40,7 +40,7 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(defaultSize /*Point(10240.0, 10240.0)*/);
+	world = generateWorld(Point(2000.0, 2000.0));
 	renderWorld(world);
 	updateWorldLoop(world);
 }

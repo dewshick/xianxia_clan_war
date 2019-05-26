@@ -21,7 +21,7 @@ collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 }
 
 collidesWith(obj : GameObject, world : WorldState, dist : double) -> [GameObject] {
-	objectsFromSamePlane = getObjectsByLayers(world.objectIndex, obj.schema.layers);
+	objectsFromSamePlane = getNeighbourObjects(obj, world);
 	filter(objectsFromSamePlane, \o -> collide(obj, o, 0.0));
 }
 
