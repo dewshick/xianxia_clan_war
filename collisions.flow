@@ -1,6 +1,7 @@
 import math/geometry;
 import game_types;
 import ds/arrayutils;
+import world_state;
 
 export {
 	collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool;

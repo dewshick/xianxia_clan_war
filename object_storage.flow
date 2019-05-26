@@ -1,0 +1,37 @@
+import game_types;
+
+export {
+	ObjectStorage(
+		objects : Tree<int, Disposable<GameObject>>,
+		lastInsertId : int,
+		freeIds : [int],
+	);
+
+	initObjectStorage() -> ObjectStorage;
+	addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (int) -> (() -> void)) -> Pair<int, ObjectStorage>;
+	removeObjectFromStorage(id : int, storage : ObjectStorage) -> Pair<GameObject, ObjectStorage>;
+}
+
+initObjectStorage() {
+	ObjectStorage(makeTree(), 0, [])
+}
+
+addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (int) -> (() -> void)) -> Pair<int, ObjectStorage> {
+	addObjectWithId = \objId, lastId, freeIds -> {
+		dispObj = Disposable(newObj, subscriber(objId));
+		Pair(objId, ObjectStorage(setTree(storage.objects, objId, dispObj), lastId, freeIds));
+	}
+
+	if (storage.freeIds == []) {
+		objId = storage.lastInsertId + 1;
+		addObjectWithId(objId, objId, storage.freeIds)
+	} else {
+		addObjectWithId(storage.freeIds[0], storage.lastInsertId, tail(storage.freeIds))
+	}
+}
+
+removeObjectFromStorage(id : int, storage : ObjectStorage) -> Pair<GameObject, ObjectStorage> {
+	oldObj = eitherFn(lookupTree(storage.objects, id), idfn, \ -> fail0("missing index: " + i2s(id)));
+	oldObj.dispose();
+	Pair(oldObj.value, ObjectStorage(removeFromTree(storage.objects, id), storage.lastInsertId, arrayPush(storage.freeIds, id)))
+}

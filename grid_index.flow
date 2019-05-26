@@ -1,8 +1,7 @@
 import ds/tree;
-import math/geometry;
+import game_types;
 
 export {
-	BCircle(radius : double, coords : Point);
 	initGridIndex(size : Point) -> GridIndex;
 	addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
 	removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
@@ -22,10 +21,23 @@ initGridIndex(size : Point) -> GridIndex {
 	GridIndex(pairs2tree(map(allCoords, \coord -> Pair(coord, []))));
 }
 
+boundingCells(bounds : BCircle) -> [IntPoint] {
+	xRange = enumFromTo(
+		floor((bounds.coords.x - bounds.radius)/gridCellSize.x),
+		ceil((bounds.coords.x - bounds.radius)/gridCellSize.x)
+	);
+
+	yRange = enumFromTo(
+		floor((bounds.coords.y - bounds.radius)/gridCellSize.y),
+		ceil((bounds.coords.y - bounds.radius)/gridCellSize.y)
+	);
+	mapConcat(xRange, \x -> map(yRange, \y -> IntPoint(x,y)))
+}
+
 addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
-	fail0("TODO")
+	GridIndex(fold(boundingCells(bounds), grid.data, \tree, cell -> treePushToArrayValue(tree, cell, id)))
 }
 
 removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
-	fail0("TODO")
+	GridIndex(fold(boundingCells(bounds), grid.data, \tree, cell -> treeRemoveFromArrayValue(tree, cell, id)))
 }
