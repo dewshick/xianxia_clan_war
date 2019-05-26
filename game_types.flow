@@ -1,13 +1,13 @@
-import math/geometry;
 import ds/tree;
 import basecolors;
 import transforms;
 import grid_index;
+// import object_storage;
 import svg_colorname;
 
 export {
 	WorldState(size : Point, objectIndex : ObjectIndex);
-	initWorldState(size : Point);
+	initWorldState(size : Point) -> WorldState;
 	addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex;
 	removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex;
 	mapObjectIndex(idxObjs : ObjectIndex, fn : (GameObject) -> GameObject) -> ObjectIndex;
@@ -37,7 +37,7 @@ export {
 		objectsByLayer : [[int]],
 		lastInsertId : int,
 		freeIds : [int],
-		grid : DynamicBehaviour<GridIndex>
+		grid : ref GridIndex
 	);
 
 	ground = 0;
@@ -67,7 +67,7 @@ mkGameObject(schema : GameObjectSchema, coords : Point) -> GameObject {
 
 
 initWorldState(size : Point) -> WorldState {
-	WorldState(size, ObjectIndex(makeTree(), initObjectsByLayer, -1, [], make(initGridIndex(size))))
+	WorldState(size, ObjectIndex(makeTree(), initObjectsByLayer, -1, [], ref initGridIndex(size)))
 }
 
 addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex {
@@ -80,7 +80,7 @@ addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex {
 
 	untriple(indexParts, \objId, freeIds, lastId -> {
 		newObj = Disposable(obj, subscribeToUpd(obj.bounds, \old, new -> {
-			next(idxObjs.grid, addObjectToGrid(objId, new, removeObjectFromGrid(objId, old, getValue(idxObjs.grid))));
+			idxObjs.grid := addObjectToGrid(objId, new, removeObjectFromGrid(objId, old, ^(idxObjs.grid)));
 		}));
 		newObjects = setTree(idxObjs.objects, objId, newObj);
 		objectsByLayerUpd = mapi(idxObjs.objectsByLayer, \i, objects -> {
@@ -94,7 +94,7 @@ subscribeToUpd(val : Behaviour<?>, fn : (?, ?) -> void) -> () -> void {
 	oldVal = ref getValue(val);
 	subscribe(val, \newVal -> {
 		fn(^oldVal, newVal);
-		oldVal := newVal;	
+		oldVal := newVal;
 	})
 }
 
@@ -109,7 +109,7 @@ removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex {
 		objectsByLayerUpd = mapi(idxObjs.objectsByLayer, \i, objects -> {
 			if (contains(oldObj.schema.layers, i)) removeAll(objects, id) else objects
 		});
-		next(idxObjs.grid, removeObjectFromGrid(id, getValue(oldObj.bounds), getValue(idxObjs.grid)));
+		idxObjs.grid := removeObjectFromGrid(id, getValue(oldObj.bounds), ^(idxObjs.grid));
 		ObjectIndex(updObjects, objectsByLayerUpd, idxObjs.lastInsertId, arrayPush(idxObjs.freeIds, id), idxObjs.grid)
 	}
 }
