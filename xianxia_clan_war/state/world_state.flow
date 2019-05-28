@@ -64,6 +64,6 @@ getObjects(idxObjs : ObjectIndex) -> [GameObject] {
 }
 
 getNeighbourObjects(obj : GameObject, world : WorldState) -> [GameObject] {
-	ids = uniq(mapConcat(boundingCells(getValue(obj.bounds)), \cell -> lookupTreeDef(^(world.objectIndex.grid).data, cell, [])));
+	ids = getNeighbourObjectIds(getValue(obj.bounds), ^(world.objectIndex.grid));
 	filtermap(ids, \id -> maybeMap(lookupTree(world.objectIndex.objects.objects, id), \o -> o.value))
 }

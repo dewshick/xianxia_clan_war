@@ -27,6 +27,7 @@ export {
 
 	ground = 0;
 	earth = 1;
+	maxLayer = 1;
 	initObjectsByLayer = [[], []];
 
 	// TODO: maybe static checks for references in Avoid/Hunt? or constants?

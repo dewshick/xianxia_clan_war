@@ -2,14 +2,15 @@ import ds/tree;
 import xianxia_clan_war/game_types;
 import algorithms;
 
+// for each collision layer, we divide everything in cells of size gridCellSize and store who's in these cells
 export {
 	initGridIndex(size : Point) -> GridIndex;
 	addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
 	removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
-	GridIndex(data : Tree<IntPoint, [int]>);
-	boundingCells(bounds : BCircle) -> [IntPoint];
+	getNeighbourObjectIds(bounds : BCircle, grid : GridIndex) -> [int];
 }
 
+GridIndex(data : Tree<IntPoint, [int]>);
 
 IntPoint(x : int, y : int);
 
@@ -20,7 +21,9 @@ initGridIndex(size : Point) -> GridIndex {
 	yCoords : [int] = enumFromTo(0, ceil(size.y / gridCellSize.y));
 
 	allCoords = mapConcat(xCoords, \x -> map(yCoords, \y -> IntPoint(x,y)));
-	GridIndex(pairs2tree(map(allCoords, \coord -> Pair(coord, []))));
+	gridTree = pairs2tree(map(allCoords, \coord -> Pair(coord, [])));
+	// GridIndex(map(enumFromTo(0, maxLayer), \__ -> gridTree));
+	GridIndex(gridTree)
 }
 
 boundingCells(bounds : BCircle) -> [IntPoint] {
@@ -42,4 +45,8 @@ addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
 
 removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
 	GridIndex(fold(boundingCells(bounds), grid.data, \tree, cell -> treeRemoveFromArrayValue(tree, cell, id)))
+}
+
+getNeighbourObjectIds(bounds : BCircle, grid : GridIndex) -> [int] {
+	uniq(mapConcat(boundingCells(bounds), \cell -> lookupTreeDef(grid.data, cell, [])));
 }
