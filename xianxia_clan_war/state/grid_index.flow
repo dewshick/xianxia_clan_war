@@ -20,12 +20,7 @@ IntPoint(x : int, y : int);
 gridCellSize = Point(100.0, 100.0);
 
 initGridIndex(size : Point) -> GridIndex {
-	xCoords : [int] = enumFromTo(0, ceil(size.x / gridCellSize.x));
-	yCoords : [int] = enumFromTo(0, ceil(size.y / gridCellSize.y));
-
-	allCoords = mapConcat(xCoords, \x -> map(yCoords, \y -> IntPoint(x,y)));
-	gridTree = pairs2tree(map(allCoords, \coord -> Pair(coord, [])));
-	GridIndex(map(enumFromTo(0, maxLayer), \__ -> gridTree));
+	GridIndex(map(enumFromTo(0, maxLayer), \__ -> makeTree()));
 }
 
 boundingCells(bounds : BCircle) -> [IntPoint] {
@@ -52,7 +47,14 @@ addObjectToGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) ->
 removeObjectFromGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
 	GridIndex(fold(layers, grid.data, \gridData, l -> {
 		layerGrid = gridData[l];
-		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> treeRemoveFromArrayValue(tree, cell, id));
+		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> {
+			cellValues = removeAll(lookupTreeDef(tree, cell, []), id);
+			if (cellValues == []) {
+				removeFromTree(tree, cell)
+			} else {
+				setTree(tree, cell, cellValues)
+			}
+		});
 		replace(gridData, l, updGrid);
 	}))
 }
