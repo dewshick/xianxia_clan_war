@@ -1,6 +1,6 @@
-import game_types;
-import grid_index;
-import object_storage;
+import xianxia_clan_war/game_types;
+import xianxia_clan_war/state/grid_index;
+import xianxia_clan_war/state/object_storage;
 
 export {
 	WorldState(size : Point, objectIndex : ObjectIndex);

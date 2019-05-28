@@ -1,7 +1,7 @@
 import material/material_graphics;
 import material/material_manager;
 import material/material_dialog;
-import collisions;
+import xianxia_clan_war/collisions;
 
 generateGameObject(world : WorldState, schema : GameObjectSchema, attempts : int) -> Maybe<GameObject> {
 	newObj = mkGameObject(schema, Point(random() * world.size.x, random() * world.size.y));
@@ -40,7 +40,7 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(Point(2000.0, 2000.0));
+	world = generateWorld(defaultSize /*Point(2000.0, 2000.0)*/);
 	renderWorld(world);
 	updateWorldLoop(world);
 }

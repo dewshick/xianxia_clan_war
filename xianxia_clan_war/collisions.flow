@@ -1,7 +1,7 @@
 import math/geometry;
-import game_types;
+import xianxia_clan_war/game_types;
 import ds/arrayutils;
-import world_state;
+import xianxia_clan_war/state/world_state;
 
 export {
 	collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool;
@@ -16,7 +16,7 @@ collide(obj : GameObject, obj2 : GameObject, dist : double) -> bool {
 	bounds2 = getValue(obj2.bounds);
 
 	obj != obj2 &&
-	distance(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
+	distanceP(bounds.coords, bounds2.coords) < bounds.radius + bounds2.radius + dist &&
 	intersection(obj.schema.layers, obj2.schema.layers) != []
 }
 
@@ -38,12 +38,12 @@ normP(a : Point) -> Point {
 	multP(a, 1.0 / max(lengthP(a), 0.00001))
 }
 
-distance(a : Point, b : Point) -> double {
+distanceP(a : Point, b : Point) -> double {
 	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
 }
 
 lengthP(a : Point) -> double {
-	distance(vecInit, a)
+	distanceP(vecInit, a)
 }
 
 vecInit = Point(0.0, 0.0);
@@ -70,7 +70,7 @@ avoidCollision(moved : GameObject, world : WorldState) -> Point {
 	collisionVec = fold(colliding, vecInit, \vec, obj -> {
 		collBounds = getValue(obj.bounds);
 		direction = normP(minusP(collBounds.coords, bounds.coords));
-		plusP(vec, multP(direction, distance(collBounds.coords, bounds.coords)))
+		plusP(vec, multP(direction, distanceP(collBounds.coords, bounds.coords)))
 	});
 	multP(ortPoint(normP(collisionVec)), 1.0 / i2d(max(length(colliding), 1)));
 }

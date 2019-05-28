@@ -1,4 +1,4 @@
-import game_types;
+import xianxia_clan_war/game_types;
 
 export {
 	ObjectStorage(
