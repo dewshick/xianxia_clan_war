@@ -1,5 +1,6 @@
 import xianxia_clan_war/game_types;
 
+// todo: make it abstract datatype
 export {
 	ObjectStorage(
 		objects : Tree<int, Disposable<GameObject>>,

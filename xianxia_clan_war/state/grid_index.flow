@@ -3,14 +3,17 @@ import xianxia_clan_war/game_types;
 import algorithms;
 
 // for each collision layer, we divide everything in cells of size gridCellSize and store who's in these cells
+// TODO: use gameObjects in API
+// addObjectToGrid/removeObjectToGrid is copypasted
+// maybe we should have function to update object in grid
 export {
 	initGridIndex(size : Point) -> GridIndex;
-	addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
-	removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex;
-	getNeighbourObjectIds(bounds : BCircle, grid : GridIndex) -> [int];
+	addObjectToGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex;
+	removeObjectFromGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex;
+	getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [int];
 }
 
-GridIndex(data : Tree<IntPoint, [int]>);
+GridIndex(data : [Tree<IntPoint, [int]>]);
 
 IntPoint(x : int, y : int);
 
@@ -22,8 +25,7 @@ initGridIndex(size : Point) -> GridIndex {
 
 	allCoords = mapConcat(xCoords, \x -> map(yCoords, \y -> IntPoint(x,y)));
 	gridTree = pairs2tree(map(allCoords, \coord -> Pair(coord, [])));
-	// GridIndex(map(enumFromTo(0, maxLayer), \__ -> gridTree));
-	GridIndex(gridTree)
+	GridIndex(map(enumFromTo(0, maxLayer), \__ -> gridTree));
 }
 
 boundingCells(bounds : BCircle) -> [IntPoint] {
@@ -39,14 +41,25 @@ boundingCells(bounds : BCircle) -> [IntPoint] {
 	mapConcat(xRange, \x -> map(yRange, \y -> IntPoint(x,y)))
 }
 
-addObjectToGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
-	GridIndex(fold(boundingCells(bounds), grid.data, \tree, cell -> treePushToArrayValue(tree, cell, id)))
+addObjectToGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
+	GridIndex(fold(layers, grid.data, \gridData, l -> {
+		layerGrid = gridData[l];
+		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> treePushToArrayValue(tree, cell, id));
+		replace(gridData, l, updGrid);
+	}))
 }
 
-removeObjectFromGrid(id : int, bounds : BCircle, grid : GridIndex) -> GridIndex {
-	GridIndex(fold(boundingCells(bounds), grid.data, \tree, cell -> treeRemoveFromArrayValue(tree, cell, id)))
+removeObjectFromGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
+	GridIndex(fold(layers, grid.data, \gridData, l -> {
+		layerGrid = gridData[l];
+		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> treeRemoveFromArrayValue(tree, cell, id));
+		replace(gridData, l, updGrid);
+	}))
 }
 
-getNeighbourObjectIds(bounds : BCircle, grid : GridIndex) -> [int] {
-	uniq(mapConcat(boundingCells(bounds), \cell -> lookupTreeDef(grid.data, cell, [])));
+getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [int] {
+	uniq(mapConcat(layers, \l -> {
+		layerGrid = grid.data[l];
+		mapConcat(boundingCells(bounds), \cell -> lookupTreeDef(layerGrid, cell, []));
+	}))
 }

@@ -24,7 +24,7 @@ ObjectIndex(
 
 addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex {
 	subscriber = \objId -> subscribeToUpd(obj.bounds, \old, new -> {
-		idxObjs.grid := addObjectToGrid(objId, new, removeObjectFromGrid(objId, old, ^(idxObjs.grid)));
+		idxObjs.grid := addObjectToGrid(objId, new, obj.schema.layers, removeObjectFromGrid(objId, old, obj.schema.layers, ^(idxObjs.grid)));
 	});
 
 	unpair(addObjectToStorage(obj, idxObjs.objects, subscriber), \objId, newObjects -> {
@@ -42,7 +42,7 @@ subscribeToUpd(val : Behaviour<?>, fn : (?, ?) -> void) -> () -> void {
 
 removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex {
 	unpair(removeObjectFromStorage(id, idxObjs.objects), \oldObj, objects -> {
-		idxObjs.grid := removeObjectFromGrid(id, getValue(oldObj.bounds), ^(idxObjs.grid));
+		idxObjs.grid := removeObjectFromGrid(id, getValue(oldObj.bounds), oldObj.schema.layers, ^(idxObjs.grid));
 		ObjectIndex(objects, idxObjs.grid)
 	})
 }
@@ -64,6 +64,6 @@ getObjects(idxObjs : ObjectIndex) -> [GameObject] {
 }
 
 getNeighbourObjects(obj : GameObject, world : WorldState) -> [GameObject] {
-	ids = getNeighbourObjectIds(getValue(obj.bounds), ^(world.objectIndex.grid));
+	ids = getNeighbourObjectIds(getValue(obj.bounds), obj.schema.layers, ^(world.objectIndex.grid));
 	filtermap(ids, \id -> maybeMap(lookupTree(world.objectIndex.objects.objects, id), \o -> o.value))
 }
