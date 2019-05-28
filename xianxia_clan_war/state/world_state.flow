@@ -24,10 +24,11 @@ ObjectIndex(
 
 addObjectToIndex(idxObjs : ObjectIndex, obj : GameObject) -> ObjectIndex {
 	subscriber = \objId -> subscribeToUpd(obj.bounds, \old, new -> {
-		idxObjs.grid := addObjectToGrid(objId, new, obj.schema.layers, removeObjectFromGrid(objId, old, obj.schema.layers, ^(idxObjs.grid)));
+		idxObjs.grid := updateObjectInGrid(objId, old, new, obj.schema.layers, ^(idxObjs.grid));
 	});
 
 	unpair(addObjectToStorage(obj, idxObjs.objects, subscriber), \objId, newObjects -> {
+		idxObjs.grid := addObjectToGrid(objId, getValue(obj.bounds), obj.schema.layers, ^(idxObjs.grid));
 		ObjectIndex(newObjects, idxObjs.grid)
 	});
 }

@@ -10,6 +10,7 @@ export {
 	initGridIndex(size : Point) -> GridIndex;
 	addObjectToGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex;
 	removeObjectFromGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex;
+	updateObjectInGrid(id : int, oldBounds : BCircle, newBounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex;
 	getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [int];
 }
 
@@ -64,4 +65,17 @@ getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [in
 		layerGrid = grid.data[l];
 		mapConcat(boundingCells(bounds), \cell -> lookupTreeDef(layerGrid, cell, []));
 	}))
+}
+
+updateObjectInGrid(id : int, oldBounds : BCircle, newBounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
+	oldCells = boundingCells(oldBounds);
+	newCells = boundingCells(newBounds);
+	if (oldCells == newCells) {
+		grid
+	} else {
+		// TODO: maybe more precise work here can save more. don't forget to remove empty arrays!
+		// disappeared = subtractA(oldCells, newCells);
+		// appeared = subtractA(newCells, oldCells);
+		addObjectToGrid(id, newBounds, layers, removeObjectFromGrid(id, oldBounds, layers, grid))
+	}
 }
