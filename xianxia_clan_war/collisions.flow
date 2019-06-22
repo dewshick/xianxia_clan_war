@@ -38,8 +38,12 @@ normP(a : Point) -> Point {
 	multP(a, 1.0 / max(lengthP(a), 0.00001))
 }
 
+square(val : double) -> double {
+	val * val
+}
+
 distanceP(a : Point, b : Point) -> double {
-	sqrt(dpow(a.x - b.x, 2.0) + dpow(a.y - b.y, 2.0))
+	sqrt(square(a.x - b.x) + square(a.y - b.y))
 }
 
 lengthP(a : Point) -> double {

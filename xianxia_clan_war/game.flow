@@ -40,9 +40,11 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(defaultSize /*Point(2000.0, 2000.0)*/);
-	renderWorld(world);
-	updateWorldLoop(world);
+	world = generateWorld(Point(3000.0, 3000.0));
+	worldRendered = make([]);
+	updRenderedObjects(world, worldRendered);
+	renderWorld(world, worldRendered);
+	updateWorldLoop(world, worldRendered);
 }
 
 updGameObject(world : WorldState, obj : GameObject) -> GameObject {
@@ -64,21 +66,28 @@ updGameObject(world : WorldState, obj : GameObject) -> GameObject {
 	}), obj);
 }
 
-updateWorldLoop(world : WorldState) -> void {
+updateWorldLoop(world : WorldState, rendered : DynamicBehaviour<[Pair<GameObject, BCircle>]>) -> void {
 	timer(8, \ -> {
 		updW = WorldState(world.size, mapObjectIndex(world.objectIndex, \obj -> updGameObject(world, obj)));
-		updateWorldLoop(updW);
+		updRenderedObjects(world, rendered);
+		updateWorldLoop(updW, rendered);
 	});
 }
 
-renderWorld(world : WorldState) -> () -> void {
+updRenderedObjects(world : WorldState, rendered : DynamicBehaviour<[Pair<GameObject, BCircle>]>) {
+	next(rendered, filtermap(getObjects(world.objectIndex), \obj -> {
+		bounds = getValue(obj.bounds);
+		if (bounds.coords.x - bounds.radius < defaultSize.x && 
+			bounds.coords.y - bounds.radius < defaultSize.y) { Some(Pair(obj, bounds)) } else { None() }
+	}));
+}
+
+renderWorld(world : WorldState, objects : Behaviour<[Pair<GameObject, BCircle>]>) -> () -> void {
 	mrender(makeMaterialManager([]), false, MGroup(concat(
 		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
-		map(getObjects(world.objectIndex), \gameObj -> {
-			MSelect(gameObj.bounds, \bounds -> {
+			[MSelect(objects, \os -> MGroup(map(os, unpairC(\gameObj, bounds -> {
 				MOffset(bounds.coords.x - bounds.radius, bounds.coords.y - bounds.radius, 
 					MCircle(bounds.radius, [Fill(gameObj.schema.color)]))
-			})
-		})
+			}))))]
 	)));
 }

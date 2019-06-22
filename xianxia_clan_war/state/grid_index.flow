@@ -14,58 +14,65 @@ export {
 	getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [int];
 }
 
-GridIndex(data : [Tree<IntPoint, [int]>]);
+// for each layer we have two-dimensional array of ints
+GridIndex(data : [[[DynamicBehaviour<[int]>]]]);
 
 IntPoint(x : int, y : int);
 
 gridCellSize = Point(100.0, 100.0);
 
 initGridIndex(size : Point) -> GridIndex {
-	GridIndex(map(enumFromTo(0, maxLayer), \__ -> makeTree()));
+	GridIndex(
+		map(enumFromTo(0, maxLayer), \__ -> {
+			map(enumFromTo(0, ceil(size.x / gridCellSize.x)), \__ -> {
+				map(enumFromTo(0, ceil(size.y / gridCellSize.y)), \__ -> make([]))
+			})
+		})
+	);
 }
 
 boundingCells(bounds : BCircle) -> [IntPoint] {
 	xRange = enumFromTo(
-		floor((bounds.coords.x - bounds.radius)/gridCellSize.x),
-		ceil((bounds.coords.x - bounds.radius)/gridCellSize.x)
+		max(floor((bounds.coords.x - bounds.radius)/gridCellSize.x), 0),
+		max(ceil((bounds.coords.x - bounds.radius)/gridCellSize.x), 0)
 	);
 
 	yRange = enumFromTo(
-		floor((bounds.coords.y - bounds.radius)/gridCellSize.y),
-		ceil((bounds.coords.y - bounds.radius)/gridCellSize.y)
+		max(floor((bounds.coords.y - bounds.radius)/gridCellSize.y), 0),
+		max(ceil((bounds.coords.y - bounds.radius)/gridCellSize.y), 0)
 	);
 	mapConcat(xRange, \x -> map(yRange, \y -> IntPoint(x,y)))
 }
 
 addObjectToGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
-	GridIndex(fold(layers, grid.data, \gridData, l -> {
-		layerGrid = gridData[l];
-		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> treePushToArrayValue(tree, cell, id));
-		replace(gridData, l, updGrid);
-	}))
+	iter(layers, \l -> iter(boundingCells(bounds), \cell -> {
+		cellData = getGridData(grid, l, cell);
+		next(cellData, arrayPush(getValue(cellData), id))
+	}));
+	grid;
 }
 
 removeObjectFromGrid(id : int, bounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
-	GridIndex(fold(layers, grid.data, \gridData, l -> {
-		layerGrid = gridData[l];
-		updGrid = fold(boundingCells(bounds), layerGrid, \tree, cell -> {
-			cellValues = removeAll(lookupTreeDef(tree, cell, []), id);
-			if (cellValues == []) {
-				removeFromTree(tree, cell)
-			} else {
-				setTree(tree, cell, cellValues)
-			}
-		});
-		replace(gridData, l, updGrid);
-	}))
+	iter(layers, \l -> iter(boundingCells(bounds), \cell -> {
+		cellData = getGridData(grid, l, cell);
+		next(cellData, removeAll(getValue(cellData), id))
+	}));
+	grid;
 }
 
 getNeighbourObjectIds(bounds : BCircle, layers : [int], grid : GridIndex) -> [int] {
-	uniq(mapConcat(layers, \l -> {
-		layerGrid = grid.data[l];
-		mapConcat(boundingCells(bounds), \cell -> lookupTreeDef(layerGrid, cell, []));
+	sortUnique(mapConcat(layers, \l -> {
+		mapConcat(boundingCells(bounds), \cell -> getValue(getGridData(grid, l, cell)));
 	}))
 }
+
+getGridData(grid : GridIndex, layer : int, cell : IntPoint) -> DynamicBehaviour<[int]> {
+	elementAt(elementAt(grid.data[layer], cell.x, []), cell.y, make([]))
+}
+
+// sortUniq(arr : [int]) -> [int] {
+// 	arr
+// }
 
 updateObjectInGrid(id : int, oldBounds : BCircle, newBounds : BCircle, layers : [int], grid : GridIndex) -> GridIndex {
 	oldCells = boundingCells(oldBounds);

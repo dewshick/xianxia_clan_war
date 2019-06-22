@@ -34,5 +34,9 @@ addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (i
 removeObjectFromStorage(id : int, storage : ObjectStorage) -> Pair<GameObject, ObjectStorage> {
 	oldObj = eitherFn(lookupTree(storage.objects, id), idfn, \ -> fail0("missing index: " + i2s(id)));
 	oldObj.dispose();
-	Pair(oldObj.value, ObjectStorage(removeFromTree(storage.objects, id), storage.lastInsertId, arrayPush(storage.freeIds, id)))
+	Pair(oldObj.value, ObjectStorage(
+		removeFromTree(storage.objects, id), 
+		storage.lastInsertId, 
+		arrayPush(storage.freeIds, id)
+	))
 }
