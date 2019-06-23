@@ -40,7 +40,7 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(Point(3000.0, 3000.0));
+	world = generateWorld(/*defaultSize*/ Point(3000.0, 3000.0));
 	worldRendered = make([]);
 	updRenderedObjects(world, worldRendered);
 	renderWorld(world, worldRendered);

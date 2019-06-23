@@ -19,7 +19,7 @@ GridIndex(data : [[[DynamicBehaviour<[int]>]]]);
 
 IntPoint(x : int, y : int);
 
-gridCellSize = Point(100.0, 100.0);
+gridCellSize = Point(20.0, 20.0);
 
 initGridIndex(size : Point) -> GridIndex {
 	GridIndex(
