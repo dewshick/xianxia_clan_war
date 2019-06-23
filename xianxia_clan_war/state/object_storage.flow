@@ -3,7 +3,7 @@ import xianxia_clan_war/game_types;
 // todo: make it abstract datatype
 export {
 	ObjectStorage(
-		objects : Tree<int, Disposable<GameObject>>,
+		objects : [ref Maybe<Disposable<GameObject>>],
 		lastInsertId : int,
 		freeIds : [int],
 	);
@@ -14,13 +14,14 @@ export {
 }
 
 initObjectStorage() {
-	ObjectStorage(makeTree(), 0, [])
+	ObjectStorage(map(enumFromTo(0, 50000), \__ -> ref None()), 0, [])
 }
 
 addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (int) -> (() -> void)) -> Pair<int, ObjectStorage> {
 	addObjectWithId = \objId, lastId, freeIds -> {
 		dispObj = Disposable(newObj, subscriber(objId));
-		Pair(objId, ObjectStorage(setTree(storage.objects, objId, dispObj), lastId, freeIds));
+		storage.objects[objId] := Some(dispObj);
+		Pair(objId, ObjectStorage(storage.objects, lastId, freeIds));
 	}
 
 	if (storage.freeIds == []) {
@@ -32,10 +33,12 @@ addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (i
 }
 
 removeObjectFromStorage(id : int, storage : ObjectStorage) -> Pair<GameObject, ObjectStorage> {
-	oldObj = eitherFn(lookupTree(storage.objects, id), idfn, \ -> fail0("missing index: " + i2s(id)));
+	oldObj = eitherFn(^(storage.objects[id]), idfn, \ -> fail0("missing index: " + i2s(id)));
 	oldObj.dispose();
+	storage.objects[id] := None();
+
 	Pair(oldObj.value, ObjectStorage(
-		removeFromTree(storage.objects, id), 
+		storage.objects, 
 		storage.lastInsertId, 
 		arrayPush(storage.freeIds, id)
 	))

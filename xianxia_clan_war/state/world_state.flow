@@ -49,22 +49,24 @@ removeObjectFromIndex(idxObjs : ObjectIndex, id : int) -> ObjectIndex {
 }
 
 mapObjectIndex(idxObjs : ObjectIndex, fn : (GameObject) -> GameObject) -> ObjectIndex {
-	ObjectIndex(idxObjs with objects = ObjectStorage(idxObjs.objects with objects=mapTree(idxObjs.objects.objects, \objDisp -> {
-		obj = objDisp.value;
-		newObj = Disposable(fn(obj), objDisp.dispose);
+	iter(idxObjs.objects.objects, \objDisp -> maybeApply(^objDisp, \objD -> {
+		obj = objD.value;
+		newObj = Disposable(fn(obj), objD.dispose);
 		if (newObj.value.schema == obj.schema) {
-			newObj
+			objDisp := Some(newObj);
 		} else {
 			fail0("we assumed schema to be kept. now it changed from " + obj.schema.name + " to " + newObj.value.schema.name)
 		}
-	})))
+	}));
+
+	idxObjs
 }
 
 getObjects(idxObjs : ObjectIndex) -> [GameObject] {
-	map(getTreeValues(idxObjs.objects.objects), \obj -> obj.value)
+	filtermap(idxObjs.objects.objects, \obj -> maybeMap(^obj, \o -> o.value))
 }
 
 getNeighbourObjects(obj : GameObject, world : WorldState) -> [GameObject] {
 	ids = getNeighbourObjectIds(getValue(obj.bounds), obj.schema.layers, ^(world.objectIndex.grid));
-	filtermap(ids, \id -> maybeMap(lookupTree(world.objectIndex.objects.objects, id), \o -> o.value))
+	filtermap(ids, \id -> maybeMap(^(world.objectIndex.objects.objects[id]), \o -> o.value))
 }
