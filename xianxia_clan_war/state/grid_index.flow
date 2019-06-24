@@ -34,12 +34,12 @@ initGridIndex(size : Point) -> GridIndex {
 boundingCells(bounds : BCircle) -> [IntPoint] {
 	xRange = enumFromTo(
 		max(floor((bounds.coords.x - bounds.radius)/gridCellSize.x), 0),
-		max(ceil((bounds.coords.x - bounds.radius)/gridCellSize.x), 0)
+		max(floor((bounds.coords.x + bounds.radius)/gridCellSize.x), 0)
 	);
 
 	yRange = enumFromTo(
 		max(floor((bounds.coords.y - bounds.radius)/gridCellSize.y), 0),
-		max(ceil((bounds.coords.y - bounds.radius)/gridCellSize.y), 0)
+		max(floor((bounds.coords.y + bounds.radius)/gridCellSize.y), 0)
 	);
 	mapConcat(xRange, \x -> map(yRange, \y -> IntPoint(x,y)))
 }

@@ -14,7 +14,7 @@ export {
 }
 
 initObjectStorage() {
-	ObjectStorage(map(enumFromTo(0, 50000), \__ -> ref None()), 0, [])
+	ObjectStorage(map(enumFromTo(0, 150000), \__ -> ref None()), 0, [])
 }
 
 addObjectToStorage(newObj : GameObject, storage : ObjectStorage, subscriber : (int) -> (() -> void)) -> Pair<int, ObjectStorage> {

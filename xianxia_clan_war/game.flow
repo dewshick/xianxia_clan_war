@@ -40,10 +40,10 @@ generateWorld(size : Point) -> WorldState {
 defaultSize = Point(1024.0, 600.0);
 
 main() {
-	world = generateWorld(/*defaultSize*/ Point(3000.0, 3000.0));
+	world = generateWorld(/*defaultSize*/ Point(5000.0, 5000.0));
 	worldRendered = make([]);
-	updRenderedObjects(world, worldRendered);
-	renderWorld(world, worldRendered);
+	staticObjects = updRenderedObjects(world, worldRendered);
+	renderWorld(world, worldRendered, staticObjects);
 	updateWorldLoop(world, worldRendered);
 }
 
@@ -74,20 +74,33 @@ updateWorldLoop(world : WorldState, rendered : DynamicBehaviour<[Pair<GameObject
 	});
 }
 
-updRenderedObjects(world : WorldState, rendered : DynamicBehaviour<[Pair<GameObject, BCircle>]>) {
-	next(rendered, filtermap(getObjects(world.objectIndex), \obj -> {
+updRenderedObjects(world : WorldState, rendered : DynamicBehaviour<[Pair<GameObject, BCircle>]>) -> [Pair<GameObject, BCircle>] {
+	updObjects = filtermap(getObjects(world.objectIndex), \obj -> {
 		bounds = getValue(obj.bounds);
 		if (bounds.coords.x - bounds.radius < defaultSize.x && 
 			bounds.coords.y - bounds.radius < defaultSize.y) { Some(Pair(obj, bounds)) } else { None() }
-	}));
+	});
+	objByMove = unzip(updObjects, unpairC(\obj, __ -> obj.schema.speed > 0.0001));
+	next(rendered, objByMove.first);
+	objByMove.second
 }
 
-renderWorld(world : WorldState, objects : Behaviour<[Pair<GameObject, BCircle>]>) -> () -> void {
-	mrender(makeMaterialManager([]), false, MGroup(concat(
+renderWorld(
+	world : WorldState, 
+	objects : Behaviour<[Pair<GameObject, BCircle>]>, 
+	staticObjects : [Pair<GameObject, BCircle>]
+) -> () -> void {
+	mrender(makeMaterialManager([]), false, MGroup(concat3(
 		[TRectangle([Fill(svgName2color("greenyellow", black))], TFixed(world.size.x, world.size.y))], 
-			[MSelect(objects, \os -> MGroup(map(os, unpairC(\gameObj, bounds -> {
-				MOffset(bounds.coords.x - bounds.radius, bounds.coords.y - bounds.radius, 
-					MCircle(bounds.radius, [Fill(gameObj.schema.color)]))
-			}))))]
+		[MSelect(objects, \os -> MGroup(map(os, unpairC(renderObj))))],
+		map(staticObjects, unpairC(renderObj))
 	)));
+}
+
+renderObj(gameObj : GameObject, bounds : BCircle) -> Material {
+	MOffset(
+		bounds.coords.x - bounds.radius,
+		bounds.coords.y - bounds.radius,
+		MCircle(bounds.radius, [Fill(gameObj.schema.color)])
+	)
 }
